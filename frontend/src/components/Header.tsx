@@ -45,7 +45,7 @@ export const Header: React.FC = () => {
     fetchNotifications();
 
     // SSE Real-time stream
-    const sse = new EventSource('http://localhost:8000/api/notifications/stream');
+    const sse = new EventSource('https://phishguard-ai-backend-1edk.onrender.com/api/notifications/stream');
     sse.onmessage = (event) => {
       try {
         const data = JSON.parse(event.data);
@@ -66,7 +66,7 @@ export const Header: React.FC = () => {
 
   const fetchNotifications = async () => {
     try {
-      const res = await fetch('http://localhost:8000/api/notifications?limit=20', {
+      const res = await fetch('https://phishguard-ai-backend-1edk.onrender.com/api/notifications?limit=20', {
         headers: authService.getToken() ? { Authorization: `Bearer ${authService.getToken()}` } : {}
       });
       if (res.ok) {
@@ -90,7 +90,7 @@ export const Header: React.FC = () => {
 
   const handleMarkRead = async (notifId: string) => {
     try {
-      await fetch(`http://localhost:8000/api/notifications/${notifId}/read`, {
+      await fetch(`https://phishguard-ai-backend-1edk.onrender.com/api/notifications/${notifId}/read`, {
         method: 'POST',
         headers: authService.getToken() ? { Authorization: `Bearer ${authService.getToken()}` } : {}
       });

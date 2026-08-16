@@ -1,4 +1,4 @@
-const API_BASE = 'http://localhost:8000/api/auth';
+const API_BASE = 'https://phishguard-ai-backend-1edk.onrender.com/api/auth';
 
 export interface UserProfile {
   user_id: string;
