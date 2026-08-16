@@ -1,0 +1,22 @@
+{
+  "model_name": "PhishGuard AI URL Classifier",
+  "version": "1.0.0",
+  "architecture": "Character-CNN (1D Conv + Global Pooling)",
+  "dataset": "malicious_phish.csv",
+  "total_samples": 641119,
+  "num_classes": 4,
+  "classes": [
+    "benign",
+    "defacement",
+    "malware",
+    "phishing"
+  ],
+  "max_seq_len": 256,
+  "embedding_dim": 64,
+  "batch_size": 256,
+  "vocab_size": 331,
+  "gpu_device": "NVIDIA GeForce RTX 3050 6GB Laptop GPU",
+  "cuda_version": "13.0",
+  "best_val_f1": 0.972004122006731,
+  "training_duration_seconds": 790.7757053375244
+}
