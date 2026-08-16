@@ -5,6 +5,7 @@ export interface UserProfile {
   name: string;
   email: string;
   email_verified: boolean;
+  role?: 'user' | 'admin';
   created_at?: string;
   last_login?: string;
   alert_preferences?: Record<string, boolean>;
