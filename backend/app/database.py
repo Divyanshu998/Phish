@@ -90,27 +90,47 @@ class DatabaseManager:
 
     def create_indexes(self) -> None:
         db = self.require_db()
-        db.users.create_index([("email", ASCENDING)], unique=True)
-        db.users.create_index([("role", ASCENDING)])
-        db.users.create_index([("user_id", ASCENDING)], unique=True, sparse=True)
-        db.users.create_index([("verification_token_hash", ASCENDING)], sparse=True)
-        db.users.create_index([("reset_token_hash", ASCENDING)], sparse=True)
+        # Create indexes but be resilient to permission issues (Atlas user may lack createIndex privilege).
+        def safe_create_index(collection, keys, **kwargs):
+            try:
+                collection.create_index(keys, **kwargs)
+            except PyMongoError as e:
+                logger.warning(
+                    "Could not create index %s on collection %s: %s",
+                    keys,
+                    collection.name,
+                    e,
+                )
+                print(
+                    f"Warning: could not create index {keys} on {collection.name}. "
+                    "If you are using a managed MongoDB (Atlas), ensure the DB user has createIndex privileges, "
+                    "or create the indexes manually. Continuing without index creation."
+                )
 
-        db.scans.create_index([("user_id", ASCENDING)])
-        db.scans.create_index([("created_at", DESCENDING)])
-        db.scans.create_index([("classification", ASCENDING)])
-        db.scans.create_index([("risk_level", ASCENDING)])
-        db.scans.create_index([("source", ASCENDING)])
-        db.scans.create_index([("user_id", ASCENDING), ("created_at", DESCENDING)])
+        safe_create_index(db.users, [("email", ASCENDING)], unique=True)
+        safe_create_index(db.users, [("role", ASCENDING)])
+        safe_create_index(db.users, [("user_id", ASCENDING)], unique=True, sparse=True)
+        safe_create_index(db.users, [("verification_token_hash", ASCENDING)], sparse=True)
+        safe_create_index(db.users, [("reset_token_hash", ASCENDING)], sparse=True)
 
-        db.notifications.create_index([("user_id", ASCENDING), ("created_at", DESCENDING)])
-        db.notifications.create_index([("scan_id", ASCENDING)])
-        db.notifications.create_index([("read", ASCENDING)])
+        safe_create_index(db.scans, [("user_id", ASCENDING)])
+        safe_create_index(db.scans, [("created_at", DESCENDING)])
+        safe_create_index(db.scans, [("classification", ASCENDING)])
+        safe_create_index(db.scans, [("risk_level", ASCENDING)])
+        safe_create_index(db.scans, [("source", ASCENDING)])
+        safe_create_index(db.scans, [("user_id", ASCENDING), ("created_at", DESCENDING)])
 
-        db.alert_events.create_index([("user_id", ASCENDING), ("created_at", DESCENDING)])
-        db.alert_events.create_index([("scan_id", ASCENDING)])
-        db.alert_events.create_index([("channel", ASCENDING), ("status", ASCENDING)])
-        db.alert_events.create_index([("user_id", ASCENDING), ("url", ASCENDING), ("risk_level", ASCENDING), ("created_at", DESCENDING)])
+        safe_create_index(db.notifications, [("user_id", ASCENDING), ("created_at", DESCENDING)])
+        safe_create_index(db.notifications, [("scan_id", ASCENDING)])
+        safe_create_index(db.notifications, [("read", ASCENDING)])
+
+        safe_create_index(db.alert_events, [("user_id", ASCENDING), ("created_at", DESCENDING)])
+        safe_create_index(db.alert_events, [("scan_id", ASCENDING)])
+        safe_create_index(db.alert_events, [("channel", ASCENDING), ("status", ASCENDING)])
+        safe_create_index(
+            db.alert_events,
+            [("user_id", ASCENDING), ("url", ASCENDING), ("risk_level", ASCENDING), ("created_at", DESCENDING)],
+        )
 
     def health(self) -> Dict[str, str]:
         return {
