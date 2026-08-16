@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { authService } from './auth';
 
 const API_BASE_URL = 'http://localhost:8000/api';
 
@@ -7,6 +8,14 @@ const client = axios.create({
   headers: {
     'Content-Type': 'application/json'
   }
+});
+
+client.interceptors.request.use((config) => {
+  const token = authService.getToken();
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
 });
 
 export interface ScanRecord {
@@ -30,6 +39,8 @@ export interface KPIData {
   threats_detected: number;
   critical_threats: number;
   extension_scans: number;
+  high_risk_threats?: number;
+  safe_scans?: number;
 }
 
 export interface LiveExtensionActivityItem {
@@ -76,7 +87,12 @@ export const apiService = {
   },
 
   async scanUrl(url: string, source: string = 'dashboard'): Promise<ScanRecord> {
-    const res = await client.post('/scan', { url, source, browser: 'chrome' });
+    const res = await client.post('/scans/analyze', { url, source, browser: 'chrome' });
+    return res.data;
+  },
+
+  async getRecentScans(limit: number = 20): Promise<ScanRecord[]> {
+    const res = await client.get('/scans/recent', { params: { limit } });
     return res.data;
   },
 

@@ -12,7 +12,7 @@ interface Notification {
   title: string;
   message: string;
   read: boolean;
-  created_at: number;
+  created_at: string;
 }
 
 export const Header: React.FC = () => {
@@ -30,7 +30,7 @@ export const Header: React.FC = () => {
     const check = async () => {
       try {
         const res = await apiService.getHealth();
-        setIsOnline(res.status === 'online');
+        setIsOnline(res.status === 'healthy');
       } catch {
         setIsOnline(false);
       }
@@ -90,7 +90,10 @@ export const Header: React.FC = () => {
 
   const handleMarkRead = async (notifId: string) => {
     try {
-      await fetch(`http://localhost:8000/api/notifications/${notifId}/read`, { method: 'POST' });
+      await fetch(`http://localhost:8000/api/notifications/${notifId}/read`, {
+        method: 'POST',
+        headers: authService.getToken() ? { Authorization: `Bearer ${authService.getToken()}` } : {}
+      });
       setNotifications(prev => prev.map(n => n.notification_id === notifId ? { ...n, read: true } : n));
     } catch {}
   };
@@ -190,7 +193,7 @@ export const Header: React.FC = () => {
                           <div style={{ fontSize: '11px', color: '#64748b', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', marginTop: '2px' }}>{n.url}</div>
                           <div style={{ fontSize: '10px', color: '#475569', marginTop: '2px' }}>
                             Risk: <span style={{ color: getClassColor(n.classification), fontWeight: 700 }}>{n.risk_score}/100</span>
-                            &nbsp;·&nbsp;{new Date(n.created_at * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                            &nbsp;·&nbsp;{new Date(n.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                           </div>
                         </div>
                         {!n.read && <div style={{ width: '7px', height: '7px', borderRadius: '50%', background: '#ef4444', boxShadow: '0 0 6px rgba(239,68,68,0.5)', flexShrink: 0, marginTop: '3px' }} />}

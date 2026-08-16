@@ -1,9 +1,9 @@
 import json
 import asyncio
-from typing import List, Optional, Dict, Any
-from fastapi import APIRouter, Depends, Query, Header, HTTPException
+from typing import List, Optional
+from fastapi import APIRouter, Query, Header, HTTPException
 from fastapi.responses import StreamingResponse
-from app.database import db_manager
+from app.database import db_manager, object_id_or_none, utc_now
 from app.models.schemas import NotificationItem
 from app.routers.auth import get_current_user
 from app.services.notification_service import notification_service
@@ -16,13 +16,15 @@ def get_notifications(
     authorization: Optional[str] = Header(None)
 ):
     user = get_current_user(authorization)
-    query = {}
+    query = {"user_id": None}
     if user:
-        query = {"$or": [{"user_id": user["user_id"]}, {"user_id": None}]}
+        query = {"user_id": user["user_id"]}
     
-    cursor = db_manager.db.notifications.find(query).sort("created_at", -1).limit(limit)
+    cursor = db_manager.collection("notifications").find(query).sort("created_at", -1).limit(limit)
     results = []
     for doc in cursor:
+        created_at = doc.get("created_at")
+        created_at_value = db_manager.serialize_doc({"value": created_at})["value"] if created_at else ""
         results.append({
             "notification_id": str(doc.get("_id")),
             "scan_id": doc.get("scan_id"),
@@ -32,17 +34,19 @@ def get_notifications(
             "title": doc.get("title", "Threat Alert"),
             "message": doc.get("message", ""),
             "read": doc.get("read", False),
-            "created_at": doc.get("created_at", 0)
+            "created_at": created_at_value
         })
     return results
 
 @router.post("/{notification_id}/read")
-def mark_notification_read(notification_id: str):
-    from bson.objectid import ObjectId
-    try:
-        db_manager.db.notifications.update_one({"_id": ObjectId(notification_id)}, {"$set": {"read": True}})
-    except Exception:
-        db_manager.db.notifications.update_one({"notification_id": notification_id}, {"$set": {"read": True}})
+def mark_notification_read(notification_id: str, authorization: Optional[str] = Header(None)):
+    user = get_current_user(authorization)
+    query = {"_id": object_id_or_none(notification_id), "user_id": user["user_id"] if user else None}
+    if query["_id"] is None:
+        raise HTTPException(status_code=400, detail="Invalid notification id")
+    result = db_manager.collection("notifications").update_one(query, {"$set": {"read": True, "updated_at": utc_now()}})
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Notification not found")
     return {"status": "success"}
 
 @router.get("/stream")

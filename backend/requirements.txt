@@ -1,0 +1,9 @@
+fastapi
+uvicorn[standard]
+pymongo
+python-dotenv
+PyJWT
+argon2-cffi
+torch
+numpy
+scikit-learn

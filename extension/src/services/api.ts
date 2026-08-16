@@ -8,7 +8,7 @@ export async function checkBackendHealth(baseUrl: string = 'http://localhost:800
     });
     if (!res.ok) return false;
     const data = await res.json();
-    return data.status === 'online';
+    return data.status === 'healthy';
   } catch (e) {
     return false;
   }

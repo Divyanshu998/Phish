@@ -41,7 +41,7 @@ export const DashboardPage: React.FC = () => {
         { name: 'HIGH RISK', value: dist['HIGH RISK'] || 0, color: '#F97316' },
         { name: 'CRITICAL', value: dist.CRITICAL || 0, color: '#E50914' },
       ]);
-      const scans = await apiService.getScans(8);
+      const scans = await apiService.getRecentScans(8);
       setRecentScans(scans);
 
       // Populate live feed from latest scans

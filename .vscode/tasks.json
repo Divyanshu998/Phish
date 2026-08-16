@@ -1,0 +1,23 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "PhishGuard Backend",
+			"type": "shell",
+			"command": "cd /run/media/scorpion/Venom/Project/backend && /run/media/scorpion/Venom/Project/venv/bin/python -m uvicorn app.main:app --host 0.0.0.0 --port 8000",
+			"args": [],
+			"isBackground": true,
+			"problemMatcher": [],
+			"group": "build"
+		},
+		{
+			"label": "PhishGuard Frontend",
+			"type": "shell",
+			"command": "cd /run/media/scorpion/Venom/Project/frontend && npm run dev -- --host 0.0.0.0 --port 5173",
+			"args": [],
+			"isBackground": true,
+			"problemMatcher": [],
+			"group": "build"
+		}
+	]
+}

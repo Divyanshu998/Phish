@@ -80,7 +80,7 @@ export const HistoryPage: React.FC = () => {
             <option value="dashboard">Dashboard</option>
             <option value="browser_extension">Browser Extension</option>
             <option value="api">API</option>
-            <option value="demo">Demo</option>
+            <option value="manual_scanner">Manual Scanner</option>
           </select>
         </div>
       </div>

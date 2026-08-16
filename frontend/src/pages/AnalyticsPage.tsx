@@ -26,7 +26,7 @@ export const AnalyticsPage: React.FC = () => {
         { name: 'Dashboard', count: sources.dashboard || 0, color: '#E50914' },
         { name: 'Browser Extension', count: sources.browser_extension || 0, color: '#1565C0' },
         { name: 'API', count: sources.api || 0, color: '#10B981' },
-        { name: 'Demo', count: sources.demo || 0, color: '#F59E0B' },
+        { name: 'Manual Scanner', count: sources.manual_scanner || 0, color: '#F59E0B' },
       ]);
     } catch (e) {
       console.error("Error loading analytics data", e);

@@ -1,10 +1,30 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, validator
 from typing import List, Optional, Dict, Any
 
 class ScanRequest(BaseModel):
     url: str
-    source: Optional[str] = "browser_extension"  # dashboard, browser_extension, api, demo
+    source: Optional[str] = "browser_extension"  # manual_scanner, browser_extension, dashboard, api
     browser: Optional[str] = "chrome"
+
+    @validator("url")
+    def validate_url(cls, value: str) -> str:
+        value = value.strip()
+        if not value:
+            raise ValueError("URL cannot be empty")
+        if not value.startswith(("http://", "https://")):
+            raise ValueError("URL must start with http:// or https://")
+        return value
+
+    @validator("source")
+    def validate_source(cls, value: Optional[str]) -> str:
+        allowed = {"manual_scanner", "browser_extension", "dashboard", "api"}
+        if not value:
+            return "api"
+        if value == "demo":
+            return "manual_scanner"
+        if value not in allowed:
+            raise ValueError("Invalid scan source")
+        return value
 
 class FeatureBreakdown(BaseModel):
     url_length: int
@@ -30,7 +50,7 @@ class ScanResponse(BaseModel):
     ml_confidence: float # e.g. 0.964 -> 96.4%
     risk_factors: List[str]
     recommendation: str
-    source: str          # dashboard, browser_extension, api, demo
+    source: str          # manual_scanner, browser_extension, dashboard, api
     browser: Optional[str] = "chrome"
     timestamp: str
     features: Optional[Dict[str, Any]] = None
@@ -40,6 +60,8 @@ class KPIResponse(BaseModel):
     threats_detected: int
     critical_threats: int
     extension_scans: int
+    high_risk_threats: int = 0
+    safe_scans: int = 0
 
 class ExtensionScanActivityItem(BaseModel):
     scan_id: str
@@ -80,9 +102,27 @@ class SignUpRequest(BaseModel):
     password: str
     confirm_password: str
 
+    @validator("name")
+    def validate_name(cls, value: str) -> str:
+        value = value.strip()
+        if len(value) < 2:
+            raise ValueError("Name must be at least 2 characters")
+        return value
+
+    @validator("email")
+    def validate_email(cls, value: str) -> str:
+        value = value.strip().lower()
+        if "@" not in value or "." not in value.rsplit("@", 1)[-1]:
+            raise ValueError("Invalid email address")
+        return value
+
 class LoginRequest(BaseModel):
     email: str
     password: str
+
+    @validator("email")
+    def normalize_email(cls, value: str) -> str:
+        return value.strip().lower()
 
 class AuthResponse(BaseModel):
     token: str
@@ -127,5 +167,4 @@ class NotificationItem(BaseModel):
     title: str
     message: str
     read: bool
-    created_at: float
-
+    created_at: str
