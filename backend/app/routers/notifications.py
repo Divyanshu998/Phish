@@ -2,6 +2,8 @@ import json
 import asyncio
 from typing import List, Optional
 from fastapi import APIRouter, Query, Header, HTTPException
+from typing import Optional
+from app.services.auth_service import auth_service
 from fastapi.responses import StreamingResponse
 from app.database import db_manager, object_id_or_none, utc_now
 from app.models.schemas import NotificationItem
@@ -50,15 +52,25 @@ def mark_notification_read(notification_id: str, authorization: Optional[str] = 
     return {"status": "success"}
 
 @router.get("/stream")
-async def stream_notifications():
-    queue = await notification_service.subscribe()
-    
+async def stream_notifications(authorization: Optional[str] = Header(None), token: Optional[str] = Query(None)):
+    # Authenticate the user if Authorization header is provided, fallback to token query param
+    user = get_current_user(authorization)
+    if not user and token:
+        payload = auth_service.decode_jwt_token(token)
+        if payload:
+            user = db_manager.collection('users').find_one({'user_id': payload.get('sub')})
+
+    user_id = user["user_id"] if user else None
+    queue = await notification_service.subscribe(user_id)
+    print(f"[notifications.stream] client connected user_id={user_id}")
+
     async def event_generator():
         try:
             while True:
                 data = await queue.get()
+                print(f"[notifications.stream] sending event to user_id={user_id}: {data.get('event')}")
                 yield f"data: {json.dumps(data)}\n\n"
         except asyncio.CancelledError:
-            notification_service.unsubscribe(queue)
+            notification_service.unsubscribe(user_id, queue)
 
     return StreamingResponse(event_generator(), media_type="text/event-stream")

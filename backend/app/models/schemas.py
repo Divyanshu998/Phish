@@ -129,6 +129,7 @@ class AuthResponse(BaseModel):
     user_id: str
     name: str
     email: str
+    role: Optional[str] = "user"
     email_verified: bool
 
 class ForgotPasswordRequest(BaseModel):
@@ -157,6 +158,7 @@ class UserProfileResponse(BaseModel):
     created_at: str
     last_login: str
     alert_preferences: Dict[str, bool]
+    role: Optional[str] = "user"
 
 class NotificationItem(BaseModel):
     notification_id: str

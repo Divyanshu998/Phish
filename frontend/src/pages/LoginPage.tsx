@@ -20,8 +20,14 @@ export const LoginPage: React.FC = () => {
     setLoading(true);
     setError('');
     try {
-      await authService.login(email, password);
-      navigate('/dashboard');
+      const data = await authService.login(email, password);
+      // Redirect based on role
+      const role = data.role || 'user';
+      if (role === 'admin') {
+        navigate('/admin/dashboard');
+      } else {
+        navigate('/dashboard');
+      }
     } catch (err: any) {
       setError(err.message || 'Invalid credentials. Please try again.');
     } finally {

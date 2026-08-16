@@ -53,6 +53,9 @@ app.add_middleware(
 # Include Routers
 app.include_router(auth_router)
 app.include_router(notifications_router)
+# Admin router
+from app.routers.admin import router as admin_router
+app.include_router(admin_router)
 
 @app.get("/api/health")
 def health_check():
@@ -128,7 +131,8 @@ def perform_scan_internal(url: str, source: str, browser: str, user_id: Optional
     notification_service.process_scan_alert(scan_doc, user_id=user_id)
     try:
         loop = asyncio.get_running_loop()
-        loop.create_task(notification_service.broadcast_event("scan_result", db_manager.serialize_doc(scan_doc)))
+        # Broadcast event to the specific user (if available) and to anonymous listeners
+        loop.create_task(notification_service.broadcast_event("scan_result", db_manager.serialize_doc(scan_doc), user_id=user_id))
     except RuntimeError:
         pass
 

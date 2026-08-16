@@ -91,6 +91,7 @@ class DatabaseManager:
     def create_indexes(self) -> None:
         db = self.require_db()
         db.users.create_index([("email", ASCENDING)], unique=True)
+        db.users.create_index([("role", ASCENDING)])
         db.users.create_index([("user_id", ASCENDING)], unique=True, sparse=True)
         db.users.create_index([("verification_token_hash", ASCENDING)], sparse=True)
         db.users.create_index([("reset_token_hash", ASCENDING)], sparse=True)

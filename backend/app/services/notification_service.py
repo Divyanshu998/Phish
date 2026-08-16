@@ -6,24 +6,46 @@ from app.services.email_service import email_service
 
 class NotificationService:
     def __init__(self):
-        self.subscribers: Set[asyncio.Queue] = set()
+        # Map user_id -> set of asyncio.Queue subscribers
+        self.subscribers: Dict[Optional[str], Set[asyncio.Queue]] = {}
 
-    async def subscribe(self) -> asyncio.Queue:
+    async def subscribe(self, user_id: Optional[str]) -> asyncio.Queue:
         queue = asyncio.Queue()
-        self.subscribers.add(queue)
+        key = user_id or "__anonymous__"
+        if key not in self.subscribers:
+            self.subscribers[key] = set()
+        self.subscribers[key].add(queue)
+        print(f"[NotificationService] New subscriber for user={key} (total={len(self.subscribers.get(key, []))})")
         return queue
 
-    def unsubscribe(self, queue: asyncio.Queue):
-        if queue in self.subscribers:
-            self.subscribers.remove(queue)
+    def unsubscribe(self, user_id: Optional[str], queue: asyncio.Queue):
+        key = user_id or "__anonymous__"
+        if key in self.subscribers and queue in self.subscribers[key]:
+            self.subscribers[key].remove(queue)
+            if not self.subscribers[key]:
+                del self.subscribers[key]
 
-    async def broadcast_event(self, event_type: str, data: Dict[str, Any]):
+    async def broadcast_event(self, event_type: str, data: Dict[str, Any], user_id: Optional[str] = None):
         message = {
             "event": event_type,
             "data": data,
             "timestamp": utc_now().isoformat()
         }
-        for q in list(self.subscribers):
+
+        # Deliver to specific user if provided
+        targets = []
+        if user_id:
+            key = user_id
+            if key in self.subscribers:
+                targets.extend(list(self.subscribers[key]))
+
+        # Also deliver to anonymous/global subscribers
+        anon_key = "__anonymous__"
+        if anon_key in self.subscribers:
+            targets.extend(list(self.subscribers[anon_key]))
+
+        print(f"[NotificationService] Broadcasting event '{event_type}' to user={user_id or '__anonymous__'} targets={len(targets)}")
+        for q in targets:
             try:
                 await q.put(message)
             except Exception:

@@ -24,13 +24,15 @@ class AuthService:
         except Exception:
             return False
 
-    def create_jwt_token(self, user_id: str, email: str) -> str:
+    def create_jwt_token(self, user_id: str, email: str, role: Optional[str] = None) -> str:
         payload = {
             "sub": user_id,
             "email": email,
             "iat": int(time.time()),
             "exp": int(time.time()) + ACCESS_TOKEN_EXPIRE_SECONDS
         }
+        if role:
+            payload["role"] = role
         return jwt.encode(payload, SECRET_KEY, algorithm=ALGORITHM)
 
     def decode_jwt_token(self, token: str) -> Optional[Dict[str, Any]]:

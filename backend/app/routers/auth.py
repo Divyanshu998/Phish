@@ -12,6 +12,7 @@ from app.models.schemas import (
 )
 from app.services.auth_service import auth_service
 from app.services.email_service import email_service
+from fastapi import Depends
 
 router = APIRouter(prefix="/api/auth", tags=["authentication"])
 
@@ -34,6 +35,16 @@ def require_user(authorization: Optional[str] = Header(None)) -> Dict[str, Any]:
     user = get_current_user(authorization)
     if not user:
         raise HTTPException(status_code=401, detail="Authentication required")
+    return user
+
+
+def require_admin(authorization: Optional[str] = Header(None)) -> Dict[str, Any]:
+    user = get_current_user(authorization)
+    if not user:
+        raise HTTPException(status_code=401, detail="Authentication required")
+    role = user.get("role", "user")
+    if role != "admin":
+        raise HTTPException(status_code=403, detail="Administrator access required")
     return user
 
 @router.post("/signup", response_model=AuthResponse)
@@ -91,12 +102,13 @@ def signup(payload: SignUpRequest):
     # Send verification email asynchronously / in background
     email_service.send_verification_email(email, name, verification_token)
     
-    token = auth_service.create_jwt_token(user_id, email)
+    token = auth_service.create_jwt_token(user_id, email, role="user")
     return {
         "token": token,
         "user_id": user_id,
         "name": name,
         "email": email,
+        "role": "user",
         "email_verified": False
     }
 
@@ -113,13 +125,23 @@ def login(payload: LoginRequest):
 
     now = utc_now()
     db_manager.collection("users").update_one({"user_id": user["user_id"]}, {"$set": {"last_login": now, "updated_at": now}})
-    
-    token = auth_service.create_jwt_token(user["user_id"], email)
+    # include role in token payload
+    role = user.get("role", "user")
+    token = auth_service.create_jwt_token(user["user_id"], email, role=role)
+    # Audit admin login
+    if role == "admin":
+        db_manager.collection("audit_logs").insert_one({
+            "actor_user_id": user["user_id"],
+            "action": "admin_login",
+            "created_at": utc_now(),
+            "metadata": {"email": user.get("email")}
+        })
     return {
         "token": token,
         "user_id": user["user_id"],
         "name": user.get("name", "User"),
         "email": email,
+        "role": role,
         "email_verified": user.get("email_verified", False)
     }
 
@@ -132,7 +154,8 @@ def get_me(user: Dict[str, Any] = Depends(require_user)):
         "email_verified": user.get("email_verified", False),
         "created_at": db_manager.serialize_doc({"value": user.get("created_at")})["value"] if user.get("created_at") else "",
         "last_login": db_manager.serialize_doc({"value": user.get("last_login")})["value"] if user.get("last_login") else "",
-        "alert_preferences": user.get("alert_preferences", {})
+        "alert_preferences": user.get("alert_preferences", {}),
+        "role": user.get("role", "user")
     }
 
 @router.put("/settings")

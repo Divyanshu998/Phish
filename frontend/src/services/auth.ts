@@ -63,7 +63,7 @@ export const authService = {
     if (!res.ok) {
       throw new Error(data.detail || 'Login failed');
     }
-    this.setAuth(data.token, { user_id: data.user_id, name: data.name, email: data.email, email_verified: data.email_verified });
+    this.setAuth(data.token, { user_id: data.user_id, name: data.name, email: data.email, email_verified: data.email_verified, role: data.role || 'user' });
     return data;
   },
 
@@ -74,7 +74,11 @@ export const authService = {
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.detail || 'Failed to fetch user profile');
-    return data;
+    // persist updated role if returned
+    const user = this.getUser();
+    const merged = { ...(user || {}), ...data } as UserProfile;
+    localStorage.setItem('phishguard_user', JSON.stringify(merged));
+    return merged;
   },
 
   async verifyEmail(token: string) {

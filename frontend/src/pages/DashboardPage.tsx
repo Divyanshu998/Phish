@@ -62,7 +62,10 @@ export const DashboardPage: React.FC = () => {
 
   const setupSSE = () => {
     try {
-      const sse = new EventSource('http://localhost:8000/api/notifications/stream');
+      const token = localStorage.getItem('phishguard_token');
+      const base = `http://localhost:8000/api/notifications/stream`;
+      const url = token ? `${base}?token=${encodeURIComponent(token)}` : base;
+      const sse = new EventSource(url);
       sseRef.current = sse;
       sse.onmessage = (event) => {
         try {
